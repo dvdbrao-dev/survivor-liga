@@ -456,6 +456,17 @@ label {
   font-size: 0.78rem;
 }
 
+.invite-result-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.invitation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
 .round-timeline {
   display: grid;
   gap: 0.7rem;

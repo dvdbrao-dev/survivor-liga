@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/(auth)/actions";
 import { CopyLinkButton } from "@/components/copy-link-button";
+import { WhatsAppShareButton } from "@/components/whatsapp-share-button";
 import {
   closeRoundAction,
   createInvitationAction,
@@ -34,11 +35,13 @@ export default async function AdminPage({
   const notice = getParam(params.notice);
   const error = getParam(params.error);
   const inviteToken = getParam(params.inviteToken);
+  const inviteEmail = getParam(params.inviteEmail);
+  const inviteUsed = getParam(params.inviteUsed) === "true";
 
   const baseUrlRaw =
     process.env.NEXT_PUBLIC_APP_URL ??
     process.env.NEXT_PUBLIC_SITE_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://survivor-liga-taac.vercel.app");
   const baseUrl = baseUrlRaw.replace(/\/$/, "");
 
   const inviteUrl = (token: string) => `${baseUrl}/invite/${token}`;
@@ -75,16 +78,33 @@ export default async function AdminPage({
             <h2>Invitacion generada</h2>
             <span className="badge badge-win">Success</span>
           </div>
-          <div style={{ display: "grid", gap: 8 }}>
+          <p className="subtitle" style={{ marginBottom: 8 }}>
+            Invitacion creada correctamente. Puedes copiar o compartir el enlace ahora mismo aunque no haya SMTP configurado.
+          </p>
+
+          <div className="invite-result-grid">
+            <div>
+              <span className="badge badge-info">Email</span>
+              <div style={{ marginTop: 6 }}>{inviteEmail || "No disponible"}</div>
+            </div>
             <div>
               <span className="badge badge-info">Token</span>
               <div style={{ marginTop: 6 }}>
-                <code>{inviteToken}</code>
+                <code style={{ wordBreak: "break-all" }}>{inviteToken}</code>
+              </div>
+            </div>
+            <div>
+              <span className="badge badge-info">Estado</span>
+              <div style={{ marginTop: 6 }}>
+                {inviteUsed ? <span className="badge badge-loss">used</span> : <span className="badge badge-win">pending</span>}
               </div>
             </div>
             <div className="invite-link">
               <code>{inviteUrl(inviteToken)}</code>
+            </div>
+            <div className="invitation-actions">
               <CopyLinkButton value={inviteUrl(inviteToken)} />
+              <WhatsAppShareButton inviteUrl={inviteUrl(inviteToken)} />
             </div>
           </div>
         </section>
@@ -266,6 +286,7 @@ export default async function AdminPage({
                 <th>Token</th>
                 <th>URL registro</th>
                 <th>Estado</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -273,15 +294,20 @@ export default async function AdminPage({
                 <tr key={inv.id}>
                   <td>{inv.email}</td>
                   <td>
-                    <code>{inv.token}</code>
+                    <code style={{ fontSize: "0.78rem", wordBreak: "break-all" }}>{inv.token}</code>
                   </td>
                   <td>
                     <div className="invite-link">
                       <code>{inviteUrl(inv.token)}</code>
-                      <CopyLinkButton value={inviteUrl(inv.token)} />
                     </div>
                   </td>
                   <td>{inv.used ? <span className="badge badge-loss">used</span> : <span className="badge badge-win">pending</span>}</td>
+                  <td>
+                    <div className="invitation-actions">
+                      <CopyLinkButton value={inviteUrl(inv.token)} />
+                      <WhatsAppShareButton inviteUrl={inviteUrl(inv.token)} />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

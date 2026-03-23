@@ -181,15 +181,17 @@ export async function createInvitationAction(formData: FormData) {
     const { data: inserted, error } = await admin
       .from("invitations")
       .insert({ email })
-      .select("token")
+      .select("token,email,used")
       .single();
 
     if (error || !inserted?.token) throw new Error(error?.message || "No se pudo crear la invitacion");
 
     revalidatePath("/admin");
     adminRedirect({
-      notice: "Invitacion generada",
+      notice: "Invitacion generada y lista para compartir",
       inviteToken: inserted.token,
+      inviteEmail: inserted.email,
+      inviteUsed: String(Boolean(inserted.used)),
     });
   } catch (error) {
     adminRedirect({ error: getErrorMessage(error) });
