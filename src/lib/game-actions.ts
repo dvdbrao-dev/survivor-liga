@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -75,8 +75,10 @@ export async function updateAvatar(formData: FormData) {
 }
 
 export async function createRoundAction(formData: FormData) {
+  await ensureAdmin();
+  let redirectTo = "/admin?notice=ok";
+
   try {
-    await ensureAdmin();
     const parsed = roundSchema.parse({
       season: formData.get("season"),
       roundNumber: formData.get("roundNumber"),
@@ -84,21 +86,28 @@ export async function createRoundAction(formData: FormData) {
       timezone: formData.get("timezone") || "Europe/Madrid",
     });
 
+    const deadlineIso = new Date(parsed.deadline).toISOString();
     const supabase = await createClient();
-    await supabase.from("rounds").insert({
+    const { error } = await supabase.from("rounds").insert({
       season: parsed.season,
       round_number: parsed.roundNumber,
-      deadline: new Date(parsed.deadline).toISOString(),
+      deadline: deadlineIso,
       timezone: parsed.timezone,
       status: "open",
     });
 
+    if (error) {
+      throw new Error(error.message);
+    }
+
     revalidatePath("/admin");
     revalidatePath("/dashboard");
-    adminRedirect({ notice: "Jornada creada correctamente" });
   } catch (error) {
-    adminRedirect({ error: getErrorMessage(error) });
+    const errorMessage = getErrorMessage(error);
+    redirectTo = `/admin?error=${encodeURIComponent(errorMessage)}`;
   }
+
+  redirect(redirectTo);
 }
 
 export async function closeRoundAction(formData: FormData) {
