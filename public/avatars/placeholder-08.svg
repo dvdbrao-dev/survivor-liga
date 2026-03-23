@@ -1,0 +1,13 @@
+﻿<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160' role='img' aria-label='Hawk Eight'>
+  <defs>
+    <linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#94c930'/>
+      <stop offset='100%' stop-color='#466414'/>
+    </linearGradient>
+  </defs>
+  <rect width='160' height='160' rx='80' fill='url(#g)'/>
+  <circle cx='80' cy='80' r='61' fill='none' stroke='rgba(255,255,255,0.28)' stroke-width='4'/>
+  <path d='M24 116 L80 28 L136 116 Z' fill='rgba(255,255,255,0.10)'/>
+  <text x='80' y='95' text-anchor='middle' font-family='Arial, sans-serif' font-size='34' font-weight='700' fill='#e2f9b3'>H8</text>
+</svg>
+

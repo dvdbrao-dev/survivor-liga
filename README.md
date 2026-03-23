@@ -1,36 +1,135 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Survivor Liga
 
-## Getting Started
+Aplicacion web de supervivencia para LaLiga, lista para desplegar en **Vercel + Supabase**.
 
-First, run the development server:
+## Stack
+
+- Next.js (App Router)
+- TypeScript
+- TailwindCSS v4
+- Supabase (PostgreSQL + Auth)
+- Vercel (hosting + cron)
+
+## Funcionalidades incluidas
+
+- Registro solo por invitacion (`/invite/:token`)
+- Login email + contrasena
+- Roles: `admin` y `player`
+- Dashboard jugador (`/dashboard`):
+  - jornada actual + countdown en tiempo real
+  - selector de equipos con marca visual de "ya usado"
+  - warning de pick repetido sin bloquear seleccion
+  - clasificacion de supervivientes
+  - historial personal
+  - selector de avatar interno
+- Panel admin (`/admin`):
+  - crear/cerrar/resolver jornadas
+  - cargar resultados manuales
+  - activar/desactivar jugadores
+  - crear/listar invitaciones
+  - logs de notificaciones
+  - reset de competicion por temporada
+- Vista torneo (`/bracket`): supervivientes, eliminados y ronda de caida
+- Endpoints cron para:
+  - aviso previo (2 min antes)
+  - aviso posterior (tras deadline)
+  - auto-resolucion de jornadas cerradas
+
+## Instalacion local (paso a paso)
+
+1. Instala dependencias:
+
+```bash
+npm install
+```
+
+2. Crea tu entorno local:
+
+```bash
+cp .env.example .env.local
+```
+
+3. Completa variables en `.env.local`:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `CRON_SECRET`
+
+4. En Supabase SQL Editor ejecuta, en orden:
+- `supabase/migrations/001_init_survivor_liga.sql`
+- `supabase/seed/001_seed_core.sql`
+
+5. Crea un usuario admin inicial:
+- Desde Supabase Auth, crea usuario email/password.
+- Copia su UUID.
+- Inserta su perfil en `public.users`:
+
+```sql
+insert into public.users (id, name, email, role, status)
+values ('<AUTH_USER_UUID>', 'Admin', 'admin@survivorliga.com', 'admin', 'active')
+on conflict (id) do update set role = 'admin';
+```
+
+6. Arranca en local:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+7. Abre:
+- `http://localhost:3000/login`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Despliegue en Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Sube repo a GitHub.
+2. Importa proyecto en Vercel.
+3. Configura env vars (mismas de `.env.example`).
+4. Verifica que existe `vercel.json` con crons:
+- `/api/cron/notifications` cada minuto
+- `/api/cron/resolve` cada 2 minutos
+5. Deploy.
 
-## Learn More
+## Reglas de juego implementadas
 
-To learn more about Next.js, take a look at the following resources:
+Al resolver jornada:
+1. Activo sin pick => eliminado.
+2. Pick invalido por repeticion => eliminado.
+3. Pick con `draw` o `loss` => eliminado.
+4. Pick valido con `win` => sigue activo.
+5. Si queda 1 activo => ganador.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Notificaciones
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `pre_deadline`: 2 minutos antes, solo activos sin pick.
+- `post_deadline`: justo tras deadline, a todos los registrados.
+- Evita duplicados por `unique(round_id, type)` en `notification_logs`.
 
-## Deploy on Vercel
+## Estructura de carpetas
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```text
+.
++- public/
+¦  +- avatars/
++- src/
+¦  +- app/
+¦  ¦  +- (auth)/
+¦  ¦  ¦  +- login/
+¦  ¦  ¦  +- invite/[token]/
+¦  ¦  +- admin/
+¦  ¦  +- dashboard/
+¦  ¦  +- bracket/
+¦  ¦  +- api/cron/
+¦  +- components/
+¦  +- lib/
+¦     +- supabase/
++- supabase/
+¦  +- migrations/
+¦  +- seed/
++- middleware.ts
++- vercel.json
++- .env.example
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Nota tecnica
+
+La estructura esta preparada para conectar un proveedor real de envio (email, push, etc.) usando los datos ya calculados en `notification_logs` y en los endpoints cron.
